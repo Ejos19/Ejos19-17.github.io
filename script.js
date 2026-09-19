@@ -6,6 +6,13 @@
 // MODO: Archivo JS modular vinculado en public/index.html
 // ==========================================================================
 
+// =========================================================================
+// 1. CONFIGURACIÓN GENERAL Y URL DEL WEB APP (GOOGLE APPS SCRIPT)
+// =========================================================================
+// Reemplaza esta URL con la URL de tu Google Apps Script desplegado como Web App
+const SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycby-UYMhwbfIv-pWloHFoHfm4CwnFK9wvXG5GPLe7J44GSf42vZIw1iF-LOeDZuqWTzL/exec";
+
 // Se espera a que todo el árbol del documento DOM esté completamente cargado y parseado
 document.addEventListener("DOMContentLoaded", () => {
   // ------------------------------------------------------------------------
@@ -79,37 +86,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Formateador numérico oficial: usa "." para miles y "," para decimales (ej. 842,21 o 1.234,56)
   function formatNumberVES(val) {
-    if (val === null || val === undefined || val === '') return '';
+    if (val === null || val === undefined || val === "") return "";
     const str = String(val).trim();
-    if (str === '--' || str === '...' || str.toLowerCase() === 'error') return str;
+    if (str === "--" || str === "..." || str.toLowerCase() === "error")
+      return str;
 
-    let clean = str.replace(/[^\d.,-]/g, '');
-    if (clean.includes(',') && clean.includes('.')) {
-      if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
-        clean = clean.replace(/\./g, '').replace(',', '.');
+    let clean = str.replace(/[^\d.,-]/g, "");
+    if (clean.includes(",") && clean.includes(".")) {
+      if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
+        clean = clean.replace(/\./g, "").replace(",", ".");
       } else {
-        clean = clean.replace(/,/g, '');
+        clean = clean.replace(/,/g, "");
       }
-    } else if (clean.includes(',')) {
-      clean = clean.replace(',', '.');
+    } else if (clean.includes(",")) {
+      clean = clean.replace(",", ".");
     }
 
     const num = parseFloat(clean);
     if (isNaN(num)) return str;
 
-    const parts = num.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
+    const parts = num.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(",");
   }
 
   // Función auxiliar para normalizar y convertir el formato de fecha del BCV a D/M/AAAA
   function parseBcvDate(rawDateStr) {
     // Si la cadena está vacía o indefinida, retorna la fecha local venezolana actual
-    if (!rawDateStr) return normalizeDateStr(new Date().toLocaleDateString("es-VE"));
+    if (!rawDateStr)
+      return normalizeDateStr(new Date().toLocaleDateString("es-VE"));
     // Diccionario de equivalencia para los nombres de los meses en español
     const months = {
-      enero: "1", febrero: "2", marzo: "3", abril: "4", mayo: "5", junio: "6",
-      julio: "7", agosto: "8", septiembre: "9", octubre: "10", noviembre: "11", diciembre: "12"
+      enero: "1",
+      febrero: "2",
+      marzo: "3",
+      abril: "4",
+      mayo: "5",
+      junio: "6",
+      julio: "7",
+      agosto: "8",
+      septiembre: "9",
+      octubre: "10",
+      noviembre: "11",
+      diciembre: "12",
     };
     // Expresión regular para capturar el día numérico, el nombre del mes y el año de 4 dígitos
     const match = rawDateStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/i);
@@ -164,7 +183,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Temporizador para abortar si la petición excede el tiempo límite
         const timeoutId = setTimeout(() => controller.abort(), 4000);
         // Petición HTTP GET al endpoint local con parámetro anti-caché
-        const localRes = await fetch(`${API_LOCAL_BCV}?t=${Date.now()}`, { signal: controller.signal });
+        const localRes = await fetch(`${API_LOCAL_BCV}?t=${Date.now()}`, {
+          signal: controller.signal,
+        });
         // Limpieza del temporizador
         clearTimeout(timeoutId);
         // Verificación de respuesta exitosa
@@ -197,7 +218,10 @@ document.addEventListener("DOMContentLoaded", () => {
           // Temporizador de 6 segundos
           const timeoutId = setTimeout(() => controller.abort(), 6000);
           // Solicitud a la API de tiempo real
-          const realtimeRes = await fetch(`${API_REALTIME_BCV}?t=${Date.now()}`, { signal: controller.signal });
+          const realtimeRes = await fetch(
+            `${API_REALTIME_BCV}?t=${Date.now()}`,
+            { signal: controller.signal },
+          );
           // Limpieza del temporizador
           clearTimeout(timeoutId);
           // Comprobación de respuesta HTTP OK
@@ -242,7 +266,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Validación de códigos de respuesta HTTP
         if (!usdResponse.ok || !eurResponse.ok) {
-          throw new Error("Fallo en la comunicación con todas las fuentes de cotización");
+          throw new Error(
+            "Fallo en la comunicación con todas las fuentes de cotización",
+          );
         }
 
         // Decodificación de la respuesta del Dólar
@@ -256,7 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
         eurPrice = Number(eurData.promedio).toFixed(2);
 
         // Fecha de actualización reportada
-        const currentIso = usdData.fechaActualizacion || new Date().toISOString();
+        const currentIso =
+          usdData.fechaActualizacion || new Date().toISOString();
         // Conversión a objeto Date
         const updateDate = new Date(currentIso);
         // Formateo del texto de fecha
@@ -318,14 +345,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // ------------------------------------------------------------------------
   function saveToHistory(dateInput, usd, eur) {
     // Se extrae la representación del día normalizada para identificar la jornada (ej. "13/9/2026")
-    const rawDay = typeof dateInput === "string" ? dateInput : dateInput.toLocaleDateString("es-VE");
+    const rawDay =
+      typeof dateInput === "string"
+        ? dateInput
+        : dateInput.toLocaleDateString("es-VE");
     const dayString = normalizeDateStr(rawDay);
 
     // Se obtiene el historial existente almacenado en localStorage o se crea un arreglo vacío
     let history = JSON.parse(localStorage.getItem("bcv_history")) || [];
 
     // Se busca si ya existe un registro almacenado con la misma fecha
-    const todayIndex = history.findIndex((item) => normalizeDateStr(item.date) === dayString);
+    const todayIndex = history.findIndex(
+      (item) => normalizeDateStr(item.date) === dayString,
+    );
 
     const formattedUsd = formatNumberVES(usd);
     const formattedEur = formatNumberVES(eur);
@@ -359,6 +391,43 @@ document.addEventListener("DOMContentLoaded", () => {
       }).catch(() => {});
     } catch {
       // Fallo silencioso de red
+    }
+
+    // Sincronización automática con Google Sheets (Hoja: "Tasa Diaria")
+    // Se envía únicamente cuando la tasa o la fecha oficial del BCV han cambiado
+    try {
+      const lastSyncedRaw = localStorage.getItem("bcv_sheets_last_sync");
+      let lastSynced = null;
+      if (lastSyncedRaw) {
+        try {
+          lastSynced = JSON.parse(lastSyncedRaw);
+        } catch (e) {}
+      }
+
+      const isBcvChanged =
+        !lastSynced ||
+        normalizeDateStr(lastSynced.date) !== dayString ||
+        lastSynced.usd !== formattedUsd ||
+        lastSynced.eur !== formattedEur;
+
+      if (isBcvChanged) {
+        syncToGoogleSheets(dayString, formattedUsd, formattedEur, false).then(
+          (res) => {
+            if (res && res.success) {
+              localStorage.setItem(
+                "bcv_sheets_last_sync",
+                JSON.stringify({
+                  date: dayString,
+                  usd: formattedUsd,
+                  eur: formattedEur,
+                }),
+              );
+            }
+          },
+        );
+      }
+    } catch (e) {
+      console.warn("Control de duplicados sheets:", e);
     }
 
     // Se invoca la función para redibujar visualmente el listado de historial en la interfaz
@@ -457,7 +526,12 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/history")
     .then((res) => res.json())
     .then((data) => {
-      if (data && data.success && Array.isArray(data.history) && data.history.length > 0) {
+      if (
+        data &&
+        data.success &&
+        Array.isArray(data.history) &&
+        data.history.length > 0
+      ) {
         let localHistory = [];
         try {
           localHistory = JSON.parse(localStorage.getItem("bcv_history")) || [];
@@ -521,4 +595,184 @@ document.addEventListener("DOMContentLoaded", () => {
     // Se reactiva la consulta en segundo plano
     fetchRates(true);
   });
+
+  // ------------------------------------------------------------------------
+  // 7. SINCRONIZACIÓN AUTOMÁTICA Y MANUAL CON GOOGLE SHEETS ("Tasa Diaria")
+  // ------------------------------------------------------------------------
+  // Envío a la hoja "Tasa Diaria" utilizando SCRIPT_URL
+  // CONTROL ESTRICTO: Solo transmite si el BCV actualizó su fecha o tasa, o si se fuerza manualmente (isManual = true)
+  async function syncToGoogleSheets(date, usd, eur, isManual = false) {
+    if (!date || !usd || !eur) return false;
+    const targetUrl =
+      typeof SCRIPT_URL !== "undefined" && SCRIPT_URL
+        ? SCRIPT_URL.trim()
+        : localStorage.getItem("google_sheets_script_url") || "";
+
+    if (!targetUrl) {
+      console.warn(
+        "Google Sheets: SCRIPT_URL no configurada. Revisa la constante SCRIPT_URL al inicio del archivo script.js.",
+      );
+      return false;
+    }
+
+    try {
+      // 1. Envío a través del endpoint proxy para verificar cambios y evitar transmisiones repetidas
+      const res = await fetch("/api/sync-sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date,
+          usd,
+          eur,
+          url: targetUrl,
+          force: isManual,
+        }),
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        if (data.skipped) {
+          console.log(
+            `[Google Sheets] ℹ️ Sin cambios en BCV para el ${date}. Se omite transmisión.`,
+          );
+        } else {
+          console.log(
+            `[Google Sheets] ✅ Tasa del ${date} sincronizada exitosamente en hoja 'Tasa Diaria': USD ${usd} | EUR ${eur}`,
+          );
+        }
+        return {
+          success: true,
+          message: data.message || "¡Enviado a Tasa Diaria!",
+          skipped: Boolean(data.skipped),
+        };
+      } else if (data && !data.success) {
+        console.warn(
+          "[Google Sheets] Aviso de respuesta proxy:",
+          data?.message,
+        );
+        return {
+          success: false,
+          message: data?.message || "Error al sincronizar",
+        };
+      }
+    } catch (err) {
+      console.warn("[Google Sheets] Intento vía proxy:", err);
+    }
+
+    // 2. Solo intentar fallback directo si es una acción MANUAL del usuario (botón "Forzar Envío")
+    if (isManual) {
+      try {
+        await fetch(targetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            sheetName: "Tasa Diaria",
+            Fecha: date,
+            USD: usd,
+            EUR: eur,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        console.log(
+          `[Google Sheets] Tasa del ${date} transmitida directamente (fallback no-cors)`,
+        );
+        return { success: true, message: "¡Enviado a Tasa Diaria!" };
+      } catch (directErr) {
+        console.error(
+          "[Google Sheets] Error al sincronizar con Google Sheets:",
+          directErr,
+        );
+        return { success: false, message: "Error de conexión" };
+      }
+    }
+
+    return {
+      success: true,
+      message: "Sin cambios para transmitir",
+      skipped: true,
+    };
+  }
+
+  // Event listener para el botón manual de forzar envío a Google Sheets
+  const forceSheetsBtn = document.getElementById("force-sheets-btn");
+  if (forceSheetsBtn) {
+    forceSheetsBtn.addEventListener("click", async () => {
+      let targetDate = "";
+      let targetUsd = "";
+      let targetEur = "";
+
+      const history =
+        JSON.parse(localStorage.getItem("bcv_history")) || DEFAULT_HISTORY;
+      if (history && history.length > 0) {
+        targetDate = history[0].date;
+        targetUsd = history[0].usd;
+        targetEur = history[0].eur;
+      } else {
+        const usdText = usdRateElement.textContent.replace("Bs.", "").trim();
+        const eurText = eurRateElement.textContent.replace("Bs.", "").trim();
+        if (usdText && usdText !== "--" && usdText !== "...") {
+          targetDate = normalizeDateStr(new Date().toLocaleDateString("es-VE"));
+          targetUsd = usdText;
+          targetEur = eurText;
+        }
+      }
+
+      if (
+        !targetDate ||
+        !targetUsd ||
+        targetUsd === "--" ||
+        targetUsd === "..."
+      ) {
+        forceSheetsBtn.innerHTML =
+          '<span class="sheets-btn-icon">⚠️</span> Sin tasas para enviar';
+        setTimeout(() => {
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">📊</span> Forzar Envío a Google Sheets';
+        }, 2500);
+        return;
+      }
+
+      const originalHtml = forceSheetsBtn.innerHTML;
+      forceSheetsBtn.disabled = true;
+      forceSheetsBtn.innerHTML =
+        '<span class="sheets-btn-icon">⏳</span> Enviando a Google Sheets...';
+
+      const result = await syncToGoogleSheets(
+        targetDate,
+        targetUsd,
+        targetEur,
+        true,
+      );
+      if (result.success) {
+        forceSheetsBtn.innerHTML =
+          '<span class="sheets-btn-icon">✅</span> ¡Enviado a Tasa Diaria!';
+        try {
+          localStorage.setItem(
+            "bcv_sheets_last_sync",
+            JSON.stringify({
+              date: targetDate,
+              usd: targetUsd,
+              eur: targetEur,
+            }),
+          );
+        } catch (e) {}
+      } else {
+        if (
+          result.message &&
+          (result.message.includes("Permiso") || result.message.includes("403"))
+        ) {
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">⚠️</span> Error 403 (Permiso Apps Script)';
+        } else {
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">⚠️</span> Error al enviar';
+        }
+      }
+
+      setTimeout(() => {
+        forceSheetsBtn.disabled = false;
+        forceSheetsBtn.innerHTML = originalHtml;
+      }, 3500);
+    });
+  }
 });
