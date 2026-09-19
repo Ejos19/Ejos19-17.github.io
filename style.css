@@ -77,11 +77,11 @@ body {
 /* Estilos para el isotipo o logo del oso */
 .brand-logo {
   /* Altura controlada de 52 píxeles para una visualización equilibrada */
-  height: 110px;
+  height: 52px;
   /* Ancho automático proporcional a la altura de la imagen */
   width: auto;
   /* Ancho máximo de 52 píxeles para preservar la escala */
-  max-width: 110px;
+  max-width: 52px;
   /* Muestra la imagen completa sin cortes ni recortes */
   object-fit: contain;
   /* Sin bordes decorativos */
@@ -107,9 +107,9 @@ body {
 /* Estilos para la firma gráfica (Osiniki) */
 .brand-signature {
   /* Altura fija de 38 píxeles alineada con la proporción del logo */
-  height: 80px;
+  height: 38px;
   /* Ancho máximo ajustado para mantener la legibilidad horizontal */
-  max-width: 80px;
+  max-width: 150px;
   /* Conserva la imagen íntegra sin deformaciones ni recortes */
   object-fit: contain;
   /* Sin bordes decorativos */
@@ -282,6 +282,41 @@ button {
   background-color: #d1d5db;
 }
 
+/* Botón de acción para forzar envío a Google Sheets (Tasa Diaria) */
+.sheets-sync-btn {
+  background-color: #f0fdf4;
+  color: #166534;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 15px;
+  border-top: 1px solid #dcfce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sheets-sync-btn:hover {
+  background-color: #dcfce7;
+  color: #14532d;
+}
+
+.sheets-sync-btn:active {
+  background-color: #bbf7d0;
+}
+
+.sheets-sync-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sheets-btn-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 /* Contenedor del panel de historial con animación de apertura y cierre */
 #history-container {
   /* Altura máxima en cero cuando se encuentra cerrado (oculto) */
@@ -447,3 +482,4 @@ button {
   /* Tamaño de fuente de 0.85rem */
   font-size: 0.85rem;
 }
+
