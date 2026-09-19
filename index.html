@@ -11,9 +11,6 @@
 <html lang="es">
   <!-- Cabecera del documento que contiene metadatos, fuentes y enlaces a estilos -->
   <head>
-    <!-- icono ubicado en la pagina del proyecto -->
-    <link href="Asset/icono oso2.png" rel="icon" sizes="200x200" />
-
     <!-- Codificación de caracteres en UTF-8 para admitir acentos, eñes y caracteres especiales -->
     <meta charset="UTF-8" />
 
@@ -37,7 +34,7 @@
         <div class="brand-container" id="brand-container">
           <!-- Imagen del logo (icono del oso) con ruta relativa y respaldo automático -->
           <img
-            src="Assets/icono_oso3.png"
+            src="Assets/icono oso2.png"
             alt="Logo Osoniki"
             class="brand-logo"
             id="brand-logo"
@@ -48,7 +45,7 @@
           />
           <!-- Imagen de la firma gráfica (Osiniki) con ruta relativa y respaldo automático -->
           <img
-            src="Assets/icono oso2.png"
+            src="Assets/icono_oso3.png"
             alt="Firma Osiniki"
             class="brand-signature"
             id="brand-signature"
@@ -96,6 +93,15 @@
       <div class="actions" id="card-actions">
         <!-- Botón principal para forzar la consulta en tiempo real de las tasas actuales -->
         <button id="refresh-btn" class="primary-btn">Actualizar Tasas</button>
+        <!-- Botón para forzar el envío a Google Sheets (Tasa Diaria) -->
+        <button
+          id="force-sheets-btn"
+          class="sheets-sync-btn"
+          type="button"
+          title="Forzar envío a Google Sheets (Hoja: Tasa Diaria)"
+        >
+          <span class="sheets-btn-icon">📊</span> Forzar Envío a Google Sheets
+        </button>
         <!-- Botón secundario para alternar la visibilidad del historial desplegable -->
         <button id="toggle-history-btn" class="secondary-btn">
           Ver Historial ▼
