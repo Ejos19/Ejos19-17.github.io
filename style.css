@@ -206,13 +206,112 @@ body {
   color: #111827;
 }
 
-/* Texto que muestra la fecha y hora de la actualización oficial */
-.date {
-  /* Tamaño de fuente fino y secundario de 0.85rem */
+/* Contenedor vertical agrupador de las fechas */
+.date-container {
+  /* Separación superior de 16 píxeles respecto al contenedor de tasas */
+  margin-top: 16px;
+  /* Disposición en columna flexible */
+  display: flex;
+  flex-direction: column;
+  /* Separación de 8 píxeles entre la fecha oficial y la verificación del sistema */
+  gap: 8px;
+  /* Centrado de los elementos */
+  align-items: center;
+}
+
+/* 1. Fecha Valor oficial publicada por el Banco Central de Venezuela */
+.bcv-official-date {
+  /* Alineación interna horizontal flexible */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  /* Fondo gris claro institucional suave */
+  background-color: #f1f5f9;
+  /* Borde tenue de definición */
+  border: 1px solid #e2e8f0;
+  /* Borde completamente redondeado estilo píldora */
+  border-radius: 9999px;
+  /* Relleno equilibrado */
+  padding: 5px 14px;
+  /* Tamaño de fuente legible */
   font-size: 0.85rem;
-  /* Color gris intermedio suave para información accesoria */
+  font-weight: 600;
+  /* Color de texto oscuro de alto contraste */
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  max-width: 100%;
+}
+
+/* Insignia decorativa para el Banco Central */
+.date-badge {
+  background-color: #0f3662;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.date-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. Fecha y hora de cada verificación de nuestro sistema */
+.system-check-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #64748b;
+  padding: 2px 8px;
+}
+
+/* Punto indicador de verificación activa con animación sutil */
+.check-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  animation: pulse-green 2.5s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.check-label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.check-time {
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+/* Texto de compatibilidad para estilos antiguos */
+.date {
+  font-size: 0.85rem;
   color: #6b7280;
-  /* Separación superior de 15 píxeles respecto al contenedor de tasas */
   margin-top: 15px;
 }
 
