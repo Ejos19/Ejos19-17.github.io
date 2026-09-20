@@ -11,7 +11,7 @@
 // =========================================================================
 // Reemplaza esta URL con la URL de tu Google Apps Script desplegado como Web App
 const SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycby-UYMhwbfIv-pWloHFoHfm4CwnFK9wvXG5GPLe7J44GSf42vZIw1iF-LOeDZuqWTzL/exec";
+  "https://script.google.com/macros/s/AKfycbz_H5qt4Wm596fGf_IrEPjH9o9zD2ZBCJ5-WwUhQp2YRWV4AX__6wc_rL0k-ICw68Jh/exec";
 
 // Se espera a que todo el árbol del documento DOM esté completamente cargado y parseado
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,6 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Elemento HTML donde se muestra el estado de consulta y la fecha/hora de actualización
   const dateElement = document.getElementById("bcv-date");
+
+  // Elemento HTML donde se renderiza la Fecha Valor oficial del BCV
+  const bcvOfficialDateTextElement =
+    document.getElementById("bcv-official-date-text") || dateElement;
+
+  // Elemento HTML donde se renderiza la fecha y hora de la última verificación del sistema
+  const systemCheckTimeElement = document.getElementById("system-check-time");
 
   // Botón que permite al usuario forzar la recarga manual de las tasas oficiales
   const refreshBtn = document.getElementById("refresh-btn");
@@ -158,7 +165,10 @@ document.addEventListener("DOMContentLoaded", () => {
         eurRateElement.textContent = "...";
 
         // Mensaje informativo que notifica al usuario que se está contactando al BCV
-        dateElement.textContent = "Consultando Banco Central...";
+        if (bcvOfficialDateTextElement) {
+          bcvOfficialDateTextElement.textContent =
+            "Consultando Banco Central...";
+        }
       }
 
       // Variable para almacenar el precio procesado del dólar
@@ -173,80 +183,172 @@ document.addEventListener("DOMContentLoaded", () => {
       // Variable para almacenar la fecha formateada para el historial
       let historyDateStr = "";
 
+      // Variable para la fecha calendario de hoy para garantizar evaluación diaria
+      let currentCalendarDate = "";
+
+      // Variable para la marca de tiempo de la última verificación del sistema
+      let systemCheckTime = "";
+
       // Variable identificadora única para detectar si hubo un cambio oficial
       let rateSourceId = "";
 
       // 1. INTENTO PRIMARIO: Endpoint directo en tiempo real del servidor local (/api/bcv)
       try {
-        // Controlador de aborto para establecer un límite de espera de 4 segundos
         const controller = new AbortController();
-        // Temporizador para abortar si la petición excede el tiempo límite
         const timeoutId = setTimeout(() => controller.abort(), 4000);
-        // Petición HTTP GET al endpoint local con parámetro anti-caché
         const localRes = await fetch(`${API_LOCAL_BCV}?t=${Date.now()}`, {
           signal: controller.signal,
         });
-        // Limpieza del temporizador
         clearTimeout(timeoutId);
-        // Verificación de respuesta exitosa
         if (localRes.ok) {
-          // Decodificación de la respuesta JSON
           const localData = await localRes.json();
-          // Comprobación de que la extracción en el servidor fue exitosa
-          if (localData && localData.success) {
-            // Asignación de la tasa del dólar
+          if (
+            localData &&
+            localData.success &&
+            localData.usd &&
+            localData.eur
+          ) {
             usdPrice = localData.usd;
-            // Asignación de la tasa del euro
             eurPrice = localData.eur;
-            // Asignación del texto oficial de Fecha Valor
             displayDateText = localData.fechaValor;
-            // Normalización de la fecha corta para el historial
-            historyDateStr = parseBcvDate(localData.fechaCorta);
-            // Generación del identificador único de cambio
-            rateSourceId = `bcv-${localData.rawUsd}-${localData.rawEur}-${localData.fechaValor}`;
+            historyDateStr =
+              localData.officialBcvDate || parseBcvDate(localData.fechaCorta);
+            currentCalendarDate =
+              localData.currentCalendarDate ||
+              normalizeDateStr(
+                new Date().toLocaleDateString("es-VE", {
+                  timeZone: "America/Caracas",
+                }),
+              );
+            systemCheckTime =
+              localData.systemCheckTime ||
+              new Date().toLocaleString("es-VE", {
+                timeZone: "America/Caracas",
+              });
+            rateSourceId = `bcv-${localData.rawUsd || usdPrice}-${localData.rawEur || eurPrice}-${localData.fechaValor}`;
           }
         }
       } catch (localErr) {
-        // Si el endpoint local no está disponible (ej. en hosting estático externo), continúa silenciosamente
+        // En dominios externos estáticos /api/bcv no existe, continúa fluidamente a los siguientes métodos
       }
 
-      // 2. INTENTO SECUNDARIO: API CORS en tiempo real que scrapea directamente el BCV
+      // 2. INTENTO SECUNDARIO: Consultar el Web App de Google Apps Script directamente desde Google Cloud
+      // Google Apps Script no tiene restricciones CORS para el navegador y consulta la web del BCV o la hoja Tasa Diaria
+      if (
+        (!usdPrice || !eurPrice) &&
+        typeof SCRIPT_URL !== "undefined" &&
+        SCRIPT_URL &&
+        SCRIPT_URL.startsWith("http")
+      ) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const gsRes = await fetch(
+            `${SCRIPT_URL}?action=bcv&t=${Date.now()}`,
+            { signal: controller.signal },
+          );
+          clearTimeout(timeoutId);
+          if (gsRes.ok) {
+            const gsData = await gsRes.json();
+            if (
+              gsData &&
+              (gsData.usd || gsData.USD) &&
+              (gsData.eur || gsData.EUR)
+            ) {
+              usdPrice = formatNumberVES(gsData.usd || gsData.USD);
+              eurPrice = formatNumberVES(gsData.eur || gsData.EUR);
+              displayDateText =
+                gsData.fechaValor ||
+                `Fecha Valor: ${gsData.officialBcvDate || gsData.Fecha}`;
+              historyDateStr = normalizeDateStr(
+                gsData.officialBcvDate || gsData.Fecha || gsData.date,
+              );
+              currentCalendarDate = normalizeDateStr(
+                new Date().toLocaleDateString("es-VE", {
+                  timeZone: "America/Caracas",
+                }),
+              );
+              systemCheckTime =
+                gsData.systemCheckTime ||
+                new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
+              rateSourceId = `gs-bcv-${usdPrice}-${eurPrice}-${historyDateStr}`;
+            }
+          }
+        } catch (gsErr) {
+          // Si action=bcv no responde, intentar leer la última tasa guardada en la hoja
+        }
+
+        if (!usdPrice || !eurPrice) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const gsRes2 = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            if (gsRes2.ok) {
+              const gsData2 = await gsRes2.json();
+              if (
+                gsData2 &&
+                gsData2.lastRate &&
+                (gsData2.lastRate.USD || gsData2.lastRate.usd)
+              ) {
+                const lr = gsData2.lastRate;
+                usdPrice = formatNumberVES(lr.USD || lr.usd);
+                eurPrice = formatNumberVES(lr.EUR || lr.eur);
+                const rawDate = lr.Fecha || lr.fecha || lr.date || "";
+                historyDateStr = normalizeDateStr(
+                  rawDate.includes("T")
+                    ? new Date(rawDate).toLocaleDateString("es-VE")
+                    : rawDate,
+                );
+                displayDateText = `Fecha Valor: ${historyDateStr}`;
+                currentCalendarDate = normalizeDateStr(
+                  new Date().toLocaleDateString("es-VE", {
+                    timeZone: "America/Caracas",
+                  }),
+                );
+                systemCheckTime = new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
+                rateSourceId = `gs-sheet-${usdPrice}-${eurPrice}-${historyDateStr}`;
+              }
+            }
+          } catch (gsErr2) {}
+        }
+      }
+
+      // 3. INTENTO TERCIARIO: API CORS en tiempo real que scrapea directamente el BCV
       if (!usdPrice || !eurPrice) {
         try {
-          // Controlador de aborto para la API secundaria
           const controller = new AbortController();
-          // Temporizador de 6 segundos
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-          // Solicitud a la API de tiempo real
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
           const realtimeRes = await fetch(
             `${API_REALTIME_BCV}?t=${Date.now()}`,
             { signal: controller.signal },
           );
-          // Limpieza del temporizador
           clearTimeout(timeoutId);
-          // Comprobación de respuesta HTTP OK
           if (realtimeRes.ok) {
-            // Decodificación del arreglo JSON
             const list = await realtimeRes.json();
-            // Verificación de formato array
             if (Array.isArray(list)) {
-              // Búsqueda del registro de dólar
               const d = list.find((i) => i.currency === "dolar");
-              // Búsqueda del registro de euro
               const e = list.find((i) => i.currency === "euro");
-              // Si ambos registros están presentes
               if (d && e) {
-                // Formateo de la tasa de dólar a 2 decimales
                 usdPrice = Number(d.rate).toFixed(2);
-                // Formateo de la tasa de euro a 2 decimales
                 eurPrice = Number(e.rate).toFixed(2);
-                // Creación de objeto Date con la fecha del registro
                 const updateDate = new Date(d.date || Date.now());
-                // Formateo del texto de fecha para la interfaz
-                displayDateText = `Actualizado: ${updateDate.toLocaleString("es-VE", { dateStyle: "medium", timeStyle: "short" })}`;
-                // Formato de fecha para el registro histórico
+                displayDateText = `Fecha Valor: ${updateDate.toLocaleString("es-VE", { dateStyle: "medium" })}`;
                 historyDateStr = updateDate.toLocaleDateString("es-VE");
-                // Generación de identificador de tasa
+                currentCalendarDate = normalizeDateStr(
+                  new Date().toLocaleDateString("es-VE", {
+                    timeZone: "America/Caracas",
+                  }),
+                );
+                systemCheckTime = new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
                 rateSourceId = `realtime-${usdPrice}-${eurPrice}-${d.date}`;
               }
             }
@@ -256,41 +358,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // 3. INTENTO TERCIARIO DE RESPALDO: DolarApi Oficial
+      // 4. INTENTO CUATERNARIO DE RESPALDO: DolarApi Oficial
       if (!usdPrice || !eurPrice) {
-        // Ejecución en paralelo de peticiones de respaldo
         const [usdResponse, eurResponse] = await Promise.all([
           fetch(`${API_FALLBACK_USD}?t=${Date.now()}`),
           fetch(`${API_FALLBACK_EUR}?t=${Date.now()}`),
         ]);
 
-        // Validación de códigos de respuesta HTTP
         if (!usdResponse.ok || !eurResponse.ok) {
           throw new Error(
             "Fallo en la comunicación con todas las fuentes de cotización",
           );
         }
 
-        // Decodificación de la respuesta del Dólar
         const usdData = await usdResponse.json();
-        // Decodificación de la respuesta del Euro
         const eurData = await eurResponse.json();
 
-        // Formateo de la tasa promedio del Dólar
         usdPrice = Number(usdData.promedio).toFixed(2);
-        // Formateo de la tasa promedio del Euro
         eurPrice = Number(eurData.promedio).toFixed(2);
 
-        // Fecha de actualización reportada
         const currentIso =
           usdData.fechaActualizacion || new Date().toISOString();
-        // Conversión a objeto Date
         const updateDate = new Date(currentIso);
-        // Formateo del texto de fecha
-        displayDateText = `Actualizado: ${updateDate.toLocaleString("es-VE", { dateStyle: "medium", timeStyle: "short" })}`;
-        // Fecha corta para el historial
+        displayDateText = `Fecha Valor: ${updateDate.toLocaleString("es-VE", { dateStyle: "medium" })}`;
         historyDateStr = updateDate.toLocaleDateString("es-VE");
-        // Identificador de cambio
+        currentCalendarDate = normalizeDateStr(
+          new Date().toLocaleDateString("es-VE", {
+            timeZone: "America/Caracas",
+          }),
+        );
+        systemCheckTime = new Date().toLocaleString("es-VE", {
+          timeZone: "America/Caracas",
+        });
         rateSourceId = `dolarapi-${usdPrice}-${eurPrice}-${currentIso}`;
       }
 
@@ -314,13 +413,27 @@ document.addEventListener("DOMContentLoaded", () => {
       // Se inyecta la tasa formateada del Euro en el elemento correspondiente del HTML
       eurRateElement.textContent = `Bs. ${formattedEur}`;
 
-      // Se inyecta la fecha y hora formateada en el contenedor de fecha del HTML
-      dateElement.textContent = displayDateText;
+      // Se inyecta la Fecha Valor oficial del BCV
+      if (bcvOfficialDateTextElement) {
+        bcvOfficialDateTextElement.textContent = displayDateText;
+      }
 
-      // Si es una carga inicial o si se detectó una actualización oficial del BCV:
-      if (hasChanged || !isBackground) {
-        // Se guarda automáticamente el nuevo registro en el historial persistente
-        saveToHistory(historyDateStr, formattedUsd, formattedEur);
+      // Se inyecta la marca de tiempo de la verificación realizada por nuestro proyecto
+      if (systemCheckTimeElement && systemCheckTime) {
+        systemCheckTimeElement.textContent = systemCheckTime;
+      }
+
+      // Regla 1 & 2: Guardar y sincronizar fecha oficial del BCV
+      saveToHistory(historyDateStr, formattedUsd, formattedEur);
+
+      // Regla 3: Si la tasa no cambia y la fecha tampoco, evaluar la fecha actual correspondiente
+      // con la última tasa actualizada para garantizar que cada día sea evaluado en historial y en Sheets
+      if (
+        currentCalendarDate &&
+        normalizeDateStr(currentCalendarDate) !==
+          normalizeDateStr(historyDateStr)
+      ) {
+        saveToHistory(currentCalendarDate, formattedUsd, formattedEur);
       }
     } catch (error) {
       // Registro del error en la consola del desarrollador para diagnóstico
@@ -328,14 +441,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Solo si fue una petición manual y los valores están vacíos mostramos error visual
       if (!isBackground && usdRateElement.textContent === "...") {
-        // Muestra estado de error en la casilla del Dólar
         usdRateElement.textContent = "Error";
-
-        // Muestra estado de error en la casilla del Euro
         eurRateElement.textContent = "Error";
-
-        // Muestra un mensaje amigable al usuario indicando reintentar más tarde
-        dateElement.textContent = "Intente de nuevo más tarde.";
+        if (bcvOfficialDateTextElement) {
+          bcvOfficialDateTextElement.textContent =
+            "Intente de nuevo más tarde.";
+        }
       }
     }
   }
@@ -394,26 +505,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Sincronización automática con Google Sheets (Hoja: "Tasa Diaria")
-    // Se envía únicamente cuando la tasa o la fecha oficial del BCV han cambiado
+    // Se envía respetando las 3 condiciones solicitadas por el usuario:
+    // 1. Tasa oficial cambia -> Envía
+    // 2. Fecha oficial cambia -> Envía
+    // 3. No cambia -> Evalúa día actual y envía con última tasa para asegurar evaluación diaria
+    // Además previene duplicados comprobando la fecha sincronizada
     try {
-      const lastSyncedRaw = localStorage.getItem("bcv_sheets_last_sync");
-      let lastSynced = null;
-      if (lastSyncedRaw) {
+      const syncedMapRaw = localStorage.getItem("bcv_sheets_synced_map");
+      let syncedMap = {};
+      if (syncedMapRaw) {
         try {
-          lastSynced = JSON.parse(lastSyncedRaw);
+          syncedMap = JSON.parse(syncedMapRaw);
         } catch (e) {}
       }
 
       const isBcvChanged =
-        !lastSynced ||
-        normalizeDateStr(lastSynced.date) !== dayString ||
-        lastSynced.usd !== formattedUsd ||
-        lastSynced.eur !== formattedEur;
+        !syncedMap[dayString] ||
+        syncedMap[dayString].usd !== formattedUsd ||
+        syncedMap[dayString].eur !== formattedEur;
 
       if (isBcvChanged) {
         syncToGoogleSheets(dayString, formattedUsd, formattedEur, false).then(
           (res) => {
-            if (res && res.success) {
+            if (res && res.success && !res.skipped) {
+              syncedMap[dayString] = {
+                usd: formattedUsd,
+                eur: formattedEur,
+                timestamp: Date.now(),
+              };
+              localStorage.setItem(
+                "bcv_sheets_synced_map",
+                JSON.stringify(syncedMap),
+              );
               localStorage.setItem(
                 "bcv_sheets_last_sync",
                 JSON.stringify({
@@ -522,45 +645,86 @@ document.addEventListener("DOMContentLoaded", () => {
   // Carga previa del historial guardado en localStorage al iniciar
   renderHistory();
 
-  // Sincronización con el servidor para mantener actualizados los registros
-  fetch("/api/history")
-    .then((res) => res.json())
-    .then((data) => {
-      if (
-        data &&
-        data.success &&
-        Array.isArray(data.history) &&
-        data.history.length > 0
-      ) {
-        let localHistory = [];
-        try {
-          localHistory = JSON.parse(localStorage.getItem("bcv_history")) || [];
-        } catch (e) {}
+  // Sincronización con el servidor local o Google Sheets para mantener actualizados los registros
+  function initializeHistory() {
+    fetch("/api/history")
+      .then((res) => {
+        if (!res.ok) throw new Error("API local no disponible");
+        return res.json();
+      })
+      .then((data) => {
+        if (
+          data &&
+          data.success &&
+          Array.isArray(data.history) &&
+          data.history.length > 0
+        ) {
+          let localHistory = [];
+          try {
+            localHistory =
+              JSON.parse(localStorage.getItem("bcv_history")) || [];
+          } catch (e) {}
 
-        const map = new Map();
-        data.history.forEach((item) => map.set(item.date, item));
-        localHistory.forEach((item) => map.set(item.date, item));
+          const map = new Map();
+          data.history.forEach((item) => map.set(item.date, item));
+          localHistory.forEach((item) => map.set(item.date, item));
 
-        const merged = Array.from(map.values())
-          .map((item) => ({
-            date: item.date,
-            usd: formatNumberVES(item.usd),
-            eur: formatNumberVES(item.eur),
-          }))
-          .slice(0, 20);
-        localStorage.setItem("bcv_history", JSON.stringify(merged));
-        renderHistory();
-
-        if (localHistory.length > 0) {
-          fetch("/api/history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ history: merged }),
-          }).catch(() => {});
+          const merged = Array.from(map.values())
+            .map((item) => ({
+              date: item.date,
+              usd: formatNumberVES(item.usd),
+              eur: formatNumberVES(item.eur),
+            }))
+            .slice(0, 20);
+          localStorage.setItem("bcv_history", JSON.stringify(merged));
+          renderHistory();
+        } else {
+          syncHistoryFromGoogleSheets();
         }
-      }
-    })
-    .catch(() => {});
+      })
+      .catch(() => {
+        syncHistoryFromGoogleSheets();
+      });
+  }
+
+  function syncHistoryFromGoogleSheets() {
+    if (
+      typeof SCRIPT_URL !== "undefined" &&
+      SCRIPT_URL &&
+      SCRIPT_URL.startsWith("http")
+    ) {
+      fetch(`${SCRIPT_URL}?t=${Date.now()}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data.records) && data.records.length > 0) {
+            const mapped = data.records
+              .map((r) => {
+                const rawDate = r.Fecha || r.fecha || r.date || "";
+                const cleanDate = normalizeDateStr(
+                  rawDate.includes("T")
+                    ? new Date(rawDate).toLocaleDateString("es-VE")
+                    : rawDate,
+                );
+                return {
+                  date: cleanDate,
+                  usd: formatNumberVES(r.USD || r.usd),
+                  eur: formatNumberVES(r.EUR || r.eur),
+                };
+              })
+              .reverse()
+              .slice(0, 20);
+
+            if (mapped.length > 0) {
+              localStorage.setItem("bcv_history", JSON.stringify(mapped));
+              renderHistory();
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }
+
+  initializeHistory();
 
   // Primera consulta inmediata de tasas oficiales del BCV en tiempo real
   fetchRates(false);
@@ -615,66 +779,144 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
+    const normDate = normalizeDateStr(date);
+    const formattedUsd = formatNumberVES(usd);
+    const formattedEur = formatNumberVES(eur);
+
+    // Verificación en cliente para evitar transmisiones redundantes
+    if (!isManual) {
+      try {
+        const syncedMap = JSON.parse(
+          localStorage.getItem("bcv_sheets_synced_map") || "{}",
+        );
+        if (syncedMap[normDate]) {
+          if (
+            syncedMap[normDate].usd === formattedUsd &&
+            syncedMap[normDate].eur === formattedEur
+          ) {
+            return {
+              success: true,
+              message: `Tasa ya sincronizada para el ${normDate}`,
+              skipped: true,
+            };
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 1. Envío a través del endpoint proxy local (/api/sync-sheets) si existe servidor backend
     try {
-      // 1. Envío a través del endpoint proxy para verificar cambios y evitar transmisiones repetidas
       const res = await fetch("/api/sync-sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date,
-          usd,
-          eur,
+          date: normDate,
+          usd: formattedUsd,
+          eur: formattedEur,
           url: targetUrl,
           force: isManual,
         }),
       });
-      const data = await res.json();
-      if (data && data.success) {
-        if (data.skipped) {
-          console.log(
-            `[Google Sheets] ℹ️ Sin cambios en BCV para el ${date}. Se omite transmisión.`,
-          );
-        } else {
-          console.log(
-            `[Google Sheets] ✅ Tasa del ${date} sincronizada exitosamente en hoja 'Tasa Diaria': USD ${usd} | EUR ${eur}`,
-          );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success) {
+          try {
+            const syncedMap = JSON.parse(
+              localStorage.getItem("bcv_sheets_synced_map") || "{}",
+            );
+            syncedMap[normDate] = {
+              usd: formattedUsd,
+              eur: formattedEur,
+              timestamp: Date.now(),
+            };
+            localStorage.setItem(
+              "bcv_sheets_synced_map",
+              JSON.stringify(syncedMap),
+            );
+          } catch (e) {}
+
+          if (data.skipped) {
+            console.log(
+              `[Google Sheets] ℹ️ Sin cambios en BCV para el ${normDate}. Se omite transmisión.`,
+            );
+          } else {
+            console.log(
+              `[Google Sheets] ✅ Tasa del ${normDate} sincronizada exitosamente en hoja 'Tasa Diaria': USD ${formattedUsd} | EUR ${formattedEur}`,
+            );
+          }
+          return {
+            success: true,
+            message: data.message || "¡Enviado a Tasa Diaria!",
+            skipped: Boolean(data.skipped),
+          };
         }
-        return {
-          success: true,
-          message: data.message || "¡Enviado a Tasa Diaria!",
-          skipped: Boolean(data.skipped),
-        };
-      } else if (data && !data.success) {
-        console.warn(
-          "[Google Sheets] Aviso de respuesta proxy:",
-          data?.message,
-        );
-        return {
-          success: false,
-          message: data?.message || "Error al sincronizar",
-        };
       }
     } catch (err) {
-      console.warn("[Google Sheets] Intento vía proxy:", err);
+      console.warn(
+        "[Google Sheets] Proxy local no presente (entorno estático/externo), procediendo con envío directo a Apps Script.",
+      );
     }
 
-    // 2. Solo intentar fallback directo si es una acción MANUAL del usuario (botón "Forzar Envío")
-    if (isManual) {
+    // 2. Transmisión directa a Google Apps Script (CRUCIAL PARA DOMINIOS EXTERNOS ESTÁTICOS)
+    // Funciona tanto para el sondeo automático como para el botón manual
+    if (targetUrl) {
       try {
-        await fetch(targetUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            sheetName: "Tasa Diaria",
-            Fecha: date,
-            USD: usd,
-            EUR: eur,
-            timestamp: new Date().toISOString(),
-          }),
+        const queryParams = new URLSearchParams({
+          action: "save",
+          sheetName: "Tasa Diaria",
+          Fecha: normDate,
+          USD: formattedUsd,
+          EUR: formattedEur,
+          timestamp: String(Date.now()),
         });
+        const getUrl = `${targetUrl}?${queryParams.toString()}`;
+
+        // Transmisión 1: Petición GET con parámetros en URL (inmune a redirecciones 302 en navegadores)
+        try {
+          fetch(getUrl, { mode: "no-cors", cache: "no-store" }).catch(() => {});
+        } catch (e) {}
+
+        // Transmisión 2: Dispatcher vía objeto Image (garantiza emisión inmediata sin bloqueo de políticas)
+        try {
+          const img = new Image();
+          img.src = getUrl;
+        } catch (e) {}
+
+        // Transmisión 3: Petición POST no-cors como respaldo
+        try {
+          await fetch(targetUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              action: "save",
+              sheetName: "Tasa Diaria",
+              Fecha: normDate,
+              USD: formattedUsd,
+              EUR: formattedEur,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        } catch (postErr) {}
+
+        // Registrar en caché local de sincronización para evitar duplicados en siguientes ciclos
+        try {
+          const syncedMap = JSON.parse(
+            localStorage.getItem("bcv_sheets_synced_map") || "{}",
+          );
+          syncedMap[normDate] = {
+            usd: formattedUsd,
+            eur: formattedEur,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem(
+            "bcv_sheets_synced_map",
+            JSON.stringify(syncedMap),
+          );
+        } catch (e) {}
+
         console.log(
-          `[Google Sheets] Tasa del ${date} transmitida directamente (fallback no-cors)`,
+          `[Google Sheets] ✅ Tasa del ${normDate} transmitida exitosamente a Apps Script: USD ${formattedUsd} | EUR ${formattedEur}`,
         );
         return { success: true, message: "¡Enviado a Tasa Diaria!" };
       } catch (directErr) {
@@ -682,7 +924,10 @@ document.addEventListener("DOMContentLoaded", () => {
           "[Google Sheets] Error al sincronizar con Google Sheets:",
           directErr,
         );
-        return { success: false, message: "Error de conexión" };
+        return {
+          success: false,
+          message: "Error de conexión con Google Sheets",
+        };
       }
     }
 
