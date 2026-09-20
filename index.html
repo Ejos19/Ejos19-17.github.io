@@ -85,8 +85,33 @@
           </div>
         </div>
 
-        <!-- Etiqueta de texto donde se muestra la fecha y hora de última actualización del BCV -->
-        <div class="date" id="bcv-date">Obteniendo datos...</div>
+        <!-- Contenedor con las dos fechas requeridas: Fecha Valor oficial BCV y Fecha/Hora de verificación del sistema -->
+        <div class="date-container" id="date-container">
+          <!-- 1. Fecha Valor oficial publicada por el Banco Central de Venezuela -->
+          <div
+            class="bcv-official-date"
+            id="bcv-date"
+            title="Fecha oficial de publicación del Banco Central de Venezuela"
+          >
+            <span class="date-badge">🏛️ BCV</span>
+            <span class="date-text" id="bcv-official-date-text"
+              >Obteniendo Fecha Valor...</span
+            >
+          </div>
+
+          <!-- 2. Fecha y hora de cada vez que nuestro proyecto recorre y verifica si la tasa ha cambiado o no -->
+          <div
+            class="system-check-date"
+            id="system-check-container"
+            title="Momento exacto en que el sistema verificó el portal del BCV"
+          >
+            <span class="check-pulse-dot" id="check-pulse-dot"></span>
+            <span class="check-label">Última verificación:</span>
+            <span class="check-time" id="system-check-time"
+              >Comprobando...</span
+            >
+          </div>
+        </div>
       </div>
 
       <!-- Contenedor de los botones de interacción para actualizar y desplegar historial -->
