@@ -13,46 +13,41 @@
   <head>
     <!-- Codificación de caracteres en UTF-8 para admitir acentos, eñes y caracteres especiales -->
     <meta charset="UTF-8" />
-
+    
     <!-- Configuración del viewport para garantizar una correcta visualización en dispositivos móviles -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    
     <!-- Título de la pestaña en el navegador web -->
     <title>Tasa Oficial BCV + Historial</title>
-
+    
     <!-- Vinculación con la hoja de estilos externa style.css -->
     <link rel="stylesheet" href="style.css" />
   </head>
-
+  
   <!-- Cuerpo principal de la página web donde se renderizan todos los elementos visibles -->
   <body>
     <!-- Contenedor principal de tipo tarjeta (card) centrado en pantalla -->
     <div class="card" id="bcv-card">
+      
       <!-- Encabezado superior con fondo azul corporativo y textos descriptivos -->
       <div class="header" id="card-header">
         <!-- Contenedor del branding personal del autor (Logo y Firma) encima del título -->
         <div class="brand-container" id="brand-container">
           <!-- Imagen del logo (icono del oso) con ruta relativa y respaldo automático -->
           <img
-            src="Assets/icono oso2.png"
+            src="icono oso2.png"
             alt="Logo Osoniki"
             class="brand-logo"
             id="brand-logo"
-            onerror="
-              this.onerror = null;
-              this.src = 'icono_oso2.png';
-            "
+            onerror="this.onerror=null; this.src='icono oso2.png';"
           />
           <!-- Imagen de la firma gráfica (Osiniki) con ruta relativa y respaldo automático -->
           <img
-            src="Assets/icono_oso3.png"
+            src="osiniki4k.png"
             alt="Firma Osiniki"
             class="brand-signature"
             id="brand-signature"
-            onerror="
-              this.onerror = null;
-              this.src = 'osiniki4k.png';
-            "
+            onerror="this.onerror=null; this.src='osiniki4k.png';"
           />
         </div>
         <!-- Título institucional del Banco Central de Venezuela -->
@@ -65,6 +60,7 @@
       <div class="content" id="card-content">
         <!-- Contenedor flexible que alinea los recuadros de tasas USD y EUR lado a lado -->
         <div class="rates-container" id="rates-container">
+          
           <!-- Recuadro para la cotización del Dólar Estadounidense (USD) -->
           <div class="currency-box" id="usd-box">
             <!-- Etiqueta del par cambiario USD / VES -->
@@ -72,10 +68,10 @@
             <!-- Valor numérico dinámico de la tasa USD inyectado por script.js -->
             <div class="rate" id="usd-rate">--</div>
           </div>
-
+          
           <!-- Separador vertical visual entre ambas monedas -->
           <div class="separator" id="rate-separator"></div>
-
+          
           <!-- Recuadro para la cotización del Euro (EUR) -->
           <div class="currency-box" id="eur-box">
             <!-- Etiqueta del par cambiario EUR / VES -->
@@ -88,28 +84,16 @@
         <!-- Contenedor con las dos fechas requeridas: Fecha Valor oficial BCV y Fecha/Hora de verificación del sistema -->
         <div class="date-container" id="date-container">
           <!-- 1. Fecha Valor oficial publicada por el Banco Central de Venezuela -->
-          <div
-            class="bcv-official-date"
-            id="bcv-date"
-            title="Fecha oficial de publicación del Banco Central de Venezuela"
-          >
+          <div class="bcv-official-date" id="bcv-date" title="Fecha oficial de publicación del Banco Central de Venezuela">
             <span class="date-badge">🏛️ BCV</span>
-            <span class="date-text" id="bcv-official-date-text"
-              >Obteniendo Fecha Valor...</span
-            >
+            <span class="date-text" id="bcv-official-date-text">Obteniendo Fecha Valor...</span>
           </div>
 
           <!-- 2. Fecha y hora de cada vez que nuestro proyecto recorre y verifica si la tasa ha cambiado o no -->
-          <div
-            class="system-check-date"
-            id="system-check-container"
-            title="Momento exacto en que el sistema verificó el portal del BCV"
-          >
+          <div class="system-check-date" id="system-check-container" title="Momento exacto en que el sistema verificó el portal del BCV">
             <span class="check-pulse-dot" id="check-pulse-dot"></span>
             <span class="check-label">Última verificación:</span>
-            <span class="check-time" id="system-check-time"
-              >Comprobando...</span
-            >
+            <span class="check-time" id="system-check-time">Comprobando...</span>
           </div>
         </div>
       </div>
@@ -119,12 +103,7 @@
         <!-- Botón principal para forzar la consulta en tiempo real de las tasas actuales -->
         <button id="refresh-btn" class="primary-btn">Actualizar Tasas</button>
         <!-- Botón para forzar el envío a Google Sheets (Tasa Diaria) -->
-        <button
-          id="force-sheets-btn"
-          class="sheets-sync-btn"
-          type="button"
-          title="Forzar envío a Google Sheets (Hoja: Tasa Diaria)"
-        >
+        <button id="force-sheets-btn" class="sheets-sync-btn" type="button" title="Forzar envío a Google Sheets (Hoja: Tasa Diaria)">
           <span class="sheets-btn-icon">📊</span> Forzar Envío a Google Sheets
         </button>
         <!-- Botón secundario para alternar la visibilidad del historial desplegable -->
@@ -138,9 +117,7 @@
         <!-- Tabla semántica del historial con estructura estándar reconocida por Power Query -->
         <table id="tabla-historial" class="history-table">
           <!-- Título accesible de la tabla para lectores de pantalla y asistentes de datos -->
-          <caption class="history-thead">
-            Historial de Cotizaciones Oficiales BCV
-          </caption>
+          <caption class="history-thead">Historial de Cotizaciones Oficiales BCV</caption>
           <!-- Encabezado de columnas semánticas para mapeo automático en Power Query -->
           <thead class="history-thead">
             <tr>
