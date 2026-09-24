@@ -11,7 +11,7 @@
 // =========================================================================
 // Reemplaza esta URL con la URL de tu Google Apps Script desplegado como Web App
 const SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbz_H5qt4Wm596fGf_IrEPjH9o9zD2ZBCJ5-WwUhQp2YRWV4AX__6wc_rL0k-ICw68Jh/exec";
+  "https://script.google.com/macros/s/AKfycbxufAa44kYvPG27cJuR0rBhFg9e19G6POFjAzp4UJ1cDucGPseap4tqlxo1JRsOPGnt/exec";
 
 // Se espera a que todo el árbol del documento DOM esté completamente cargado y parseado
 document.addEventListener("DOMContentLoaded", () => {
@@ -29,7 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const dateElement = document.getElementById("bcv-date");
 
   // Elemento HTML donde se renderiza la Fecha Valor oficial del BCV
-  const bcvOfficialDateTextElement = document.getElementById("bcv-official-date-text") || dateElement;
+  const bcvOfficialDateTextElement =
+    document.getElementById("bcv-official-date-text") || dateElement;
 
   // Elemento HTML donde se renderiza la fecha y hora de la última verificación del sistema
   const systemCheckTimeElement = document.getElementById("system-check-time");
@@ -54,7 +55,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_LOCAL_BCV = "/api/bcv";
 
   // Espejo oficial en tiempo real de BCV sin restricciones CORS (extrae de BCV y publica diario vía GitHub Actions/CDN)
-  const API_MIRROR_BCV = "https://raw.githubusercontent.com/grupoclip/bcv-api/main/api/v1/history.json";
+  const API_MIRROR_BCV =
+    "https://raw.githubusercontent.com/grupoclip/bcv-api/main/api/v1/history.json";
   const API_MIRROR_BCV_TODAY = "https://bcv.today/api/v1/history.json";
 
   // Endpoint secundario de respaldo dolarapi oficial USD
@@ -110,37 +112,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Formateador numérico oficial: usa "." para miles y "," para decimales (ej. 842,21 o 1.234,56)
   function formatNumberVES(val) {
-    if (val === null || val === undefined || val === '') return '';
+    if (val === null || val === undefined || val === "") return "";
     const str = String(val).trim();
-    if (str === '--' || str === '...' || str.toLowerCase() === 'error') return str;
+    if (str === "--" || str === "..." || str.toLowerCase() === "error")
+      return str;
 
-    let clean = str.replace(/[^\d.,-]/g, '');
-    if (clean.includes(',') && clean.includes('.')) {
-      if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
-        clean = clean.replace(/\./g, '').replace(',', '.');
+    let clean = str.replace(/[^\d.,-]/g, "");
+    if (clean.includes(",") && clean.includes(".")) {
+      if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
+        clean = clean.replace(/\./g, "").replace(",", ".");
       } else {
-        clean = clean.replace(/,/g, '');
+        clean = clean.replace(/,/g, "");
       }
-    } else if (clean.includes(',')) {
-      clean = clean.replace(',', '.');
+    } else if (clean.includes(",")) {
+      clean = clean.replace(",", ".");
     }
 
     const num = parseFloat(clean);
     if (isNaN(num)) return str;
 
-    const parts = num.toFixed(2).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return parts.join(',');
+    const parts = num.toFixed(2).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(",");
   }
 
   // Función auxiliar para normalizar y convertir el formato de fecha del BCV a D/M/AAAA
   function parseBcvDate(rawDateStr) {
     // Si la cadena está vacía o indefinida, retorna la fecha local venezolana actual
-    if (!rawDateStr) return normalizeDateStr(new Date().toLocaleDateString("es-VE"));
+    if (!rawDateStr)
+      return normalizeDateStr(new Date().toLocaleDateString("es-VE"));
     // Diccionario de equivalencia para los nombres de los meses en español
     const months = {
-      enero: "1", febrero: "2", marzo: "3", abril: "4", mayo: "5", junio: "6",
-      julio: "7", agosto: "8", septiembre: "9", octubre: "10", noviembre: "11", diciembre: "12"
+      enero: "1",
+      febrero: "2",
+      marzo: "3",
+      abril: "4",
+      mayo: "5",
+      junio: "6",
+      julio: "7",
+      agosto: "8",
+      septiembre: "9",
+      octubre: "10",
+      noviembre: "11",
+      diciembre: "12",
     };
     // Expresión regular para capturar el día numérico, el nombre del mes y el año de 4 dígitos
     const match = rawDateStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/i);
@@ -171,7 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Mensaje informativo que notifica al usuario que se está contactando al BCV
         if (bcvOfficialDateTextElement) {
-          bcvOfficialDateTextElement.textContent = "Consultando Banco Central...";
+          bcvOfficialDateTextElement.textContent =
+            "Consultando Banco Central...";
         }
       }
 
@@ -200,17 +215,35 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const localRes = await fetch(`${API_LOCAL_BCV}?t=${Date.now()}`, { signal: controller.signal });
+        const localRes = await fetch(`${API_LOCAL_BCV}?t=${Date.now()}`, {
+          signal: controller.signal,
+        });
         clearTimeout(timeoutId);
         if (localRes.ok) {
           const localData = await localRes.json();
-          if (localData && localData.success && localData.usd && localData.eur) {
+          if (
+            localData &&
+            localData.success &&
+            localData.usd &&
+            localData.eur
+          ) {
             usdPrice = localData.usd;
             eurPrice = localData.eur;
             displayDateText = localData.fechaValor;
-            historyDateStr = localData.officialBcvDate || parseBcvDate(localData.fechaCorta);
-            currentCalendarDate = localData.currentCalendarDate || normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-            systemCheckTime = localData.systemCheckTime || new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+            historyDateStr =
+              localData.officialBcvDate || parseBcvDate(localData.fechaCorta);
+            currentCalendarDate =
+              localData.currentCalendarDate ||
+              normalizeDateStr(
+                new Date().toLocaleDateString("es-VE", {
+                  timeZone: "America/Caracas",
+                }),
+              );
+            systemCheckTime =
+              localData.systemCheckTime ||
+              new Date().toLocaleString("es-VE", {
+                timeZone: "America/Caracas",
+              });
             rateSourceId = `bcv-${localData.rawUsd || usdPrice}-${localData.rawEur || eurPrice}-${localData.fechaValor}`;
           }
         }
@@ -224,7 +257,9 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
-          const mirrorRes = await fetch(`${API_MIRROR_BCV}?t=${Date.now()}`, { signal: controller.signal });
+          const mirrorRes = await fetch(`${API_MIRROR_BCV}?t=${Date.now()}`, {
+            signal: controller.signal,
+          });
           clearTimeout(timeoutId);
           if (mirrorRes.ok) {
             const historyList = await mirrorRes.json();
@@ -236,8 +271,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 const rawDate = last.effective_date || last.date || "";
                 historyDateStr = normalizeDateStr(rawDate);
                 displayDateText = `Fecha Valor: ${historyDateStr}`;
-                currentCalendarDate = normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-                systemCheckTime = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+                currentCalendarDate = normalizeDateStr(
+                  new Date().toLocaleDateString("es-VE", {
+                    timeZone: "America/Caracas",
+                  }),
+                );
+                systemCheckTime = new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
                 rateSourceId = `mirror-bcv-${usdPrice}-${eurPrice}-${historyDateStr}`;
               }
             }
@@ -247,7 +288,10 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000);
-            const todayRes = await fetch(`${API_MIRROR_BCV_TODAY}?t=${Date.now()}`, { signal: controller.signal });
+            const todayRes = await fetch(
+              `${API_MIRROR_BCV_TODAY}?t=${Date.now()}`,
+              { signal: controller.signal },
+            );
             clearTimeout(timeoutId);
             if (todayRes.ok) {
               const historyList = await todayRes.json();
@@ -259,8 +303,14 @@ document.addEventListener("DOMContentLoaded", () => {
                   const rawDate = last.effective_date || last.date || "";
                   historyDateStr = normalizeDateStr(rawDate);
                   displayDateText = `Fecha Valor: ${historyDateStr}`;
-                  currentCalendarDate = normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-                  systemCheckTime = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+                  currentCalendarDate = normalizeDateStr(
+                    new Date().toLocaleDateString("es-VE", {
+                      timeZone: "America/Caracas",
+                    }),
+                  );
+                  systemCheckTime = new Date().toLocaleString("es-VE", {
+                    timeZone: "America/Caracas",
+                  });
                   rateSourceId = `mirror-today-${usdPrice}-${eurPrice}-${historyDateStr}`;
                 }
               }
@@ -270,21 +320,45 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 3. INTENTO TERCIARIO: Consultar el Web App de Google Apps Script directamente desde Google Cloud
-      if ((!usdPrice || !eurPrice) && typeof SCRIPT_URL !== "undefined" && SCRIPT_URL && SCRIPT_URL.startsWith("http")) {
+      if (
+        (!usdPrice || !eurPrice) &&
+        typeof SCRIPT_URL !== "undefined" &&
+        SCRIPT_URL &&
+        SCRIPT_URL.startsWith("http")
+      ) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const gsRes = await fetch(`${SCRIPT_URL}?action=bcv&t=${Date.now()}`, { signal: controller.signal });
+          const gsRes = await fetch(
+            `${SCRIPT_URL}?action=bcv&t=${Date.now()}`,
+            { signal: controller.signal },
+          );
           clearTimeout(timeoutId);
           if (gsRes.ok) {
             const gsData = await gsRes.json();
-            if (gsData && (gsData.usd || gsData.USD) && (gsData.eur || gsData.EUR)) {
+            if (
+              gsData &&
+              (gsData.usd || gsData.USD) &&
+              (gsData.eur || gsData.EUR)
+            ) {
               usdPrice = formatNumberVES(gsData.usd || gsData.USD);
               eurPrice = formatNumberVES(gsData.eur || gsData.EUR);
-              displayDateText = gsData.fechaValor || `Fecha Valor: ${gsData.officialBcvDate || gsData.Fecha}`;
-              historyDateStr = normalizeDateStr(gsData.officialBcvDate || gsData.Fecha || gsData.date);
-              currentCalendarDate = normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-              systemCheckTime = gsData.systemCheckTime || new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+              displayDateText =
+                gsData.fechaValor ||
+                `Fecha Valor: ${gsData.officialBcvDate || gsData.Fecha}`;
+              historyDateStr = normalizeDateStr(
+                gsData.officialBcvDate || gsData.Fecha || gsData.date,
+              );
+              currentCalendarDate = normalizeDateStr(
+                new Date().toLocaleDateString("es-VE", {
+                  timeZone: "America/Caracas",
+                }),
+              );
+              systemCheckTime =
+                gsData.systemCheckTime ||
+                new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
               rateSourceId = `gs-bcv-${usdPrice}-${eurPrice}-${historyDateStr}`;
             }
           }
@@ -294,19 +368,31 @@ document.addEventListener("DOMContentLoaded", () => {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000);
-            const gsRes2 = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, { signal: controller.signal });
+            const gsRes2 = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+              signal: controller.signal,
+            });
             clearTimeout(timeoutId);
             if (gsRes2.ok) {
               const gsData2 = await gsRes2.json();
-              if (gsData2 && gsData2.lastRate && (gsData2.lastRate.USD || gsData2.lastRate.usd)) {
+              if (
+                gsData2 &&
+                gsData2.lastRate &&
+                (gsData2.lastRate.USD || gsData2.lastRate.usd)
+              ) {
                 const lr = gsData2.lastRate;
                 usdPrice = formatNumberVES(lr.USD || lr.usd);
                 eurPrice = formatNumberVES(lr.EUR || lr.eur);
                 const rawDate = lr.Fecha || lr.fecha || lr.date || "";
                 historyDateStr = normalizeDateStr(rawDate);
                 displayDateText = `Fecha Valor: ${historyDateStr}`;
-                currentCalendarDate = normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-                systemCheckTime = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+                currentCalendarDate = normalizeDateStr(
+                  new Date().toLocaleDateString("es-VE", {
+                    timeZone: "America/Caracas",
+                  }),
+                );
+                systemCheckTime = new Date().toLocaleString("es-VE", {
+                  timeZone: "America/Caracas",
+                });
                 rateSourceId = `gs-sheet-${usdPrice}-${eurPrice}-${historyDateStr}`;
               }
             }
@@ -322,7 +408,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ]);
 
         if (!usdResponse.ok || !eurResponse.ok) {
-          throw new Error("Fallo en la comunicación con todas las fuentes de cotización");
+          throw new Error(
+            "Fallo en la comunicación con todas las fuentes de cotización",
+          );
         }
 
         const usdData = await usdResponse.json();
@@ -331,12 +419,19 @@ document.addEventListener("DOMContentLoaded", () => {
         usdPrice = formatNumberVES(usdData.promedio);
         eurPrice = formatNumberVES(eurData.promedio);
 
-        const currentIso = usdData.fechaActualizacion || new Date().toISOString();
+        const currentIso =
+          usdData.fechaActualizacion || new Date().toISOString();
         const updateDate = new Date(currentIso);
         displayDateText = `Fecha Valor: ${updateDate.toLocaleString("es-VE", { dateStyle: "medium" })}`;
         historyDateStr = updateDate.toLocaleDateString("es-VE");
-        currentCalendarDate = normalizeDateStr(new Date().toLocaleDateString("es-VE", { timeZone: "America/Caracas" }));
-        systemCheckTime = new Date().toLocaleString("es-VE", { timeZone: "America/Caracas" });
+        currentCalendarDate = normalizeDateStr(
+          new Date().toLocaleDateString("es-VE", {
+            timeZone: "America/Caracas",
+          }),
+        );
+        systemCheckTime = new Date().toLocaleString("es-VE", {
+          timeZone: "America/Caracas",
+        });
         rateSourceId = `dolarapi-${usdPrice}-${eurPrice}-${currentIso}`;
       }
 
@@ -375,7 +470,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Regla 3: Si la tasa no cambia y la fecha tampoco, evaluar la fecha actual correspondiente
       // con la última tasa actualizada para garantizar que cada día sea evaluado en historial y en Sheets
-      if (currentCalendarDate && normalizeDateStr(currentCalendarDate) !== normalizeDateStr(historyDateStr)) {
+      if (
+        currentCalendarDate &&
+        normalizeDateStr(currentCalendarDate) !==
+          normalizeDateStr(historyDateStr)
+      ) {
         saveToHistory(currentCalendarDate, formattedUsd, formattedEur);
       }
     } catch (error) {
@@ -387,7 +486,8 @@ document.addEventListener("DOMContentLoaded", () => {
         usdRateElement.textContent = "Error";
         eurRateElement.textContent = "Error";
         if (bcvOfficialDateTextElement) {
-          bcvOfficialDateTextElement.textContent = "Intente de nuevo más tarde.";
+          bcvOfficialDateTextElement.textContent =
+            "Intente de nuevo más tarde.";
         }
       }
     }
@@ -398,14 +498,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // ------------------------------------------------------------------------
   function saveToHistory(dateInput, usd, eur) {
     // Se extrae la representación del día normalizada para identificar la jornada (ej. "13/9/2026")
-    const rawDay = typeof dateInput === "string" ? dateInput : dateInput.toLocaleDateString("es-VE");
+    const rawDay =
+      typeof dateInput === "string"
+        ? dateInput
+        : dateInput.toLocaleDateString("es-VE");
     const dayString = normalizeDateStr(rawDay);
 
     // Se obtiene el historial existente almacenado en localStorage o se crea un arreglo vacío
     let history = JSON.parse(localStorage.getItem("bcv_history")) || [];
 
     // Se busca si ya existe un registro almacenado con la misma fecha
-    const todayIndex = history.findIndex((item) => normalizeDateStr(item.date) === dayString);
+    const todayIndex = history.findIndex(
+      (item) => normalizeDateStr(item.date) === dayString,
+    );
 
     const formattedUsd = formatNumberVES(usd);
     const formattedEur = formatNumberVES(eur);
@@ -451,24 +556,40 @@ document.addEventListener("DOMContentLoaded", () => {
       const syncedMapRaw = localStorage.getItem("bcv_sheets_synced_map");
       let syncedMap = {};
       if (syncedMapRaw) {
-        try { syncedMap = JSON.parse(syncedMapRaw); } catch (e) {}
+        try {
+          syncedMap = JSON.parse(syncedMapRaw);
+        } catch (e) {}
       }
 
-      const isBcvChanged = !syncedMap[dayString] ||
+      const isBcvChanged =
+        !syncedMap[dayString] ||
         syncedMap[dayString].usd !== formattedUsd ||
         syncedMap[dayString].eur !== formattedEur;
 
       if (isBcvChanged) {
-        syncToGoogleSheets(dayString, formattedUsd, formattedEur, false).then((res) => {
-          if (res && res.success && !res.skipped) {
-            syncedMap[dayString] = { usd: formattedUsd, eur: formattedEur, timestamp: Date.now() };
-            localStorage.setItem("bcv_sheets_synced_map", JSON.stringify(syncedMap));
-            localStorage.setItem(
-              "bcv_sheets_last_sync",
-              JSON.stringify({ date: dayString, usd: formattedUsd, eur: formattedEur })
-            );
-          }
-        });
+        syncToGoogleSheets(dayString, formattedUsd, formattedEur, false).then(
+          (res) => {
+            if (res && res.success && !res.skipped) {
+              syncedMap[dayString] = {
+                usd: formattedUsd,
+                eur: formattedEur,
+                timestamp: Date.now(),
+              };
+              localStorage.setItem(
+                "bcv_sheets_synced_map",
+                JSON.stringify(syncedMap),
+              );
+              localStorage.setItem(
+                "bcv_sheets_last_sync",
+                JSON.stringify({
+                  date: dayString,
+                  usd: formattedUsd,
+                  eur: formattedEur,
+                }),
+              );
+            }
+          },
+        );
       }
     } catch (e) {
       console.warn("Control de duplicados sheets:", e);
@@ -574,10 +695,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
       })
       .then((data) => {
-        if (data && data.success && Array.isArray(data.history) && data.history.length > 0) {
+        if (
+          data &&
+          data.success &&
+          Array.isArray(data.history) &&
+          data.history.length > 0
+        ) {
           let localHistory = [];
           try {
-            localHistory = JSON.parse(localStorage.getItem("bcv_history")) || [];
+            localHistory =
+              JSON.parse(localStorage.getItem("bcv_history")) || [];
           } catch (e) {}
 
           const map = new Map();
@@ -603,20 +730,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function syncHistoryFromGoogleSheets() {
-    if (typeof SCRIPT_URL !== "undefined" && SCRIPT_URL && SCRIPT_URL.startsWith("http")) {
+    if (
+      typeof SCRIPT_URL !== "undefined" &&
+      SCRIPT_URL &&
+      SCRIPT_URL.startsWith("http")
+    ) {
       fetch(`${SCRIPT_URL}?t=${Date.now()}`)
         .then((res) => res.json())
         .then((data) => {
           if (data && Array.isArray(data.records) && data.records.length > 0) {
-            const mapped = data.records.map((r) => {
-              const rawDate = r.Fecha || r.fecha || r.date || "";
-              const cleanDate = normalizeDateStr(rawDate.includes("T") ? new Date(rawDate).toLocaleDateString("es-VE") : rawDate);
-              return {
-                date: cleanDate,
-                usd: formatNumberVES(r.USD || r.usd),
-                eur: formatNumberVES(r.EUR || r.eur),
-              };
-            }).reverse().slice(0, 20);
+            const mapped = data.records
+              .map((r) => {
+                const rawDate = r.Fecha || r.fecha || r.date || "";
+                const cleanDate = normalizeDateStr(
+                  rawDate.includes("T")
+                    ? new Date(rawDate).toLocaleDateString("es-VE")
+                    : rawDate,
+                );
+                return {
+                  date: cleanDate,
+                  usd: formatNumberVES(r.USD || r.usd),
+                  eur: formatNumberVES(r.EUR || r.eur),
+                };
+              })
+              .reverse()
+              .slice(0, 20);
 
             if (mapped.length > 0) {
               localStorage.setItem("bcv_history", JSON.stringify(mapped));
@@ -671,12 +809,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // CONTROL ESTRICTO: Solo transmite si el BCV actualizó su fecha o tasa, o si se fuerza manualmente (isManual = true)
   async function syncToGoogleSheets(date, usd, eur, isManual = false) {
     if (!date || !usd || !eur) return false;
-    const targetUrl = (typeof SCRIPT_URL !== "undefined" && SCRIPT_URL)
-      ? SCRIPT_URL.trim()
-      : (localStorage.getItem("google_sheets_script_url") || "");
+    const targetUrl =
+      typeof SCRIPT_URL !== "undefined" && SCRIPT_URL
+        ? SCRIPT_URL.trim()
+        : localStorage.getItem("google_sheets_script_url") || "";
 
     if (!targetUrl) {
-      console.warn("Google Sheets: SCRIPT_URL no configurada. Revisa la constante SCRIPT_URL al inicio del archivo script.js.");
+      console.warn(
+        "Google Sheets: SCRIPT_URL no configurada. Revisa la constante SCRIPT_URL al inicio del archivo script.js.",
+      );
       return false;
     }
 
@@ -687,10 +828,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // Verificación en cliente para evitar transmisiones redundantes
     if (!isManual) {
       try {
-        const syncedMap = JSON.parse(localStorage.getItem("bcv_sheets_synced_map") || "{}");
+        const syncedMap = JSON.parse(
+          localStorage.getItem("bcv_sheets_synced_map") || "{}",
+        );
         if (syncedMap[normDate]) {
-          if (syncedMap[normDate].usd === formattedUsd && syncedMap[normDate].eur === formattedEur) {
-            return { success: true, message: `Tasa ya sincronizada para el ${normDate}`, skipped: true };
+          if (
+            syncedMap[normDate].usd === formattedUsd &&
+            syncedMap[normDate].eur === formattedEur
+          ) {
+            return {
+              success: true,
+              message: `Tasa ya sincronizada para el ${normDate}`,
+              skipped: true,
+            };
           }
         }
       } catch (e) {}
@@ -701,27 +851,52 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/sync-sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: normDate, usd: formattedUsd, eur: formattedEur, url: targetUrl, force: isManual }),
+        body: JSON.stringify({
+          date: normDate,
+          usd: formattedUsd,
+          eur: formattedEur,
+          url: targetUrl,
+          force: isManual,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
         if (data && data.success) {
           try {
-            const syncedMap = JSON.parse(localStorage.getItem("bcv_sheets_synced_map") || "{}");
-            syncedMap[normDate] = { usd: formattedUsd, eur: formattedEur, timestamp: Date.now() };
-            localStorage.setItem("bcv_sheets_synced_map", JSON.stringify(syncedMap));
+            const syncedMap = JSON.parse(
+              localStorage.getItem("bcv_sheets_synced_map") || "{}",
+            );
+            syncedMap[normDate] = {
+              usd: formattedUsd,
+              eur: formattedEur,
+              timestamp: Date.now(),
+            };
+            localStorage.setItem(
+              "bcv_sheets_synced_map",
+              JSON.stringify(syncedMap),
+            );
           } catch (e) {}
 
           if (data.skipped) {
-            console.log(`[Google Sheets] ℹ️ Sin cambios en BCV para el ${normDate}. Se omite transmisión.`);
+            console.log(
+              `[Google Sheets] ℹ️ Sin cambios en BCV para el ${normDate}. Se omite transmisión.`,
+            );
           } else {
-            console.log(`[Google Sheets] ✅ Tasa del ${normDate} sincronizada exitosamente en hoja 'Tasa Diaria': USD ${formattedUsd} | EUR ${formattedEur}`);
+            console.log(
+              `[Google Sheets] ✅ Tasa del ${normDate} sincronizada exitosamente en hoja 'Tasa Diaria': USD ${formattedUsd} | EUR ${formattedEur}`,
+            );
           }
-          return { success: true, message: data.message || "¡Enviado a Tasa Diaria!", skipped: Boolean(data.skipped) };
+          return {
+            success: true,
+            message: data.message || "¡Enviado a Tasa Diaria!",
+            skipped: Boolean(data.skipped),
+          };
         }
       }
     } catch (err) {
-      console.warn("[Google Sheets] Proxy local no presente (entorno estático/externo), procediendo con envío directo a Apps Script.");
+      console.warn(
+        "[Google Sheets] Proxy local no presente (entorno estático/externo), procediendo con envío directo a Apps Script.",
+      );
     }
 
     // 2. Transmisión directa a Google Apps Script (CRUCIAL PARA DOMINIOS EXTERNOS ESTÁTICOS)
@@ -768,20 +943,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Registrar en caché local de sincronización para evitar duplicados en siguientes ciclos
         try {
-          const syncedMap = JSON.parse(localStorage.getItem("bcv_sheets_synced_map") || "{}");
-          syncedMap[normDate] = { usd: formattedUsd, eur: formattedEur, timestamp: Date.now() };
-          localStorage.setItem("bcv_sheets_synced_map", JSON.stringify(syncedMap));
+          const syncedMap = JSON.parse(
+            localStorage.getItem("bcv_sheets_synced_map") || "{}",
+          );
+          syncedMap[normDate] = {
+            usd: formattedUsd,
+            eur: formattedEur,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem(
+            "bcv_sheets_synced_map",
+            JSON.stringify(syncedMap),
+          );
         } catch (e) {}
 
-        console.log(`[Google Sheets] ✅ Tasa del ${normDate} transmitida exitosamente a Apps Script: USD ${formattedUsd} | EUR ${formattedEur}`);
+        console.log(
+          `[Google Sheets] ✅ Tasa del ${normDate} transmitida exitosamente a Apps Script: USD ${formattedUsd} | EUR ${formattedEur}`,
+        );
         return { success: true, message: "¡Enviado a Tasa Diaria!" };
       } catch (directErr) {
-        console.error("[Google Sheets] Error al sincronizar con Google Sheets:", directErr);
-        return { success: false, message: "Error de conexión con Google Sheets" };
+        console.error(
+          "[Google Sheets] Error al sincronizar con Google Sheets:",
+          directErr,
+        );
+        return {
+          success: false,
+          message: "Error de conexión con Google Sheets",
+        };
       }
     }
 
-    return { success: true, message: "Sin cambios para transmitir", skipped: true };
+    return {
+      success: true,
+      message: "Sin cambios para transmitir",
+      skipped: true,
+    };
   }
 
   // Event listener para el botón manual de forzar envío a Google Sheets
@@ -792,7 +988,8 @@ document.addEventListener("DOMContentLoaded", () => {
       let targetUsd = "";
       let targetEur = "";
 
-      const history = JSON.parse(localStorage.getItem("bcv_history")) || DEFAULT_HISTORY;
+      const history =
+        JSON.parse(localStorage.getItem("bcv_history")) || DEFAULT_HISTORY;
       if (history && history.length > 0) {
         targetDate = history[0].date;
         targetUsd = history[0].usd;
@@ -807,32 +1004,55 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      if (!targetDate || !targetUsd || targetUsd === "--" || targetUsd === "...") {
-        forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">⚠️</span> Sin tasas para enviar';
+      if (
+        !targetDate ||
+        !targetUsd ||
+        targetUsd === "--" ||
+        targetUsd === "..."
+      ) {
+        forceSheetsBtn.innerHTML =
+          '<span class="sheets-btn-icon">⚠️</span> Sin tasas para enviar';
         setTimeout(() => {
-          forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">📊</span> Forzar Envío a Google Sheets';
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">📊</span> Forzar Envío a Google Sheets';
         }, 2500);
         return;
       }
 
       const originalHtml = forceSheetsBtn.innerHTML;
       forceSheetsBtn.disabled = true;
-      forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">⏳</span> Enviando a Google Sheets...';
+      forceSheetsBtn.innerHTML =
+        '<span class="sheets-btn-icon">⏳</span> Enviando a Google Sheets...';
 
-      const result = await syncToGoogleSheets(targetDate, targetUsd, targetEur, true);
+      const result = await syncToGoogleSheets(
+        targetDate,
+        targetUsd,
+        targetEur,
+        true,
+      );
       if (result.success) {
-        forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">✅</span> ¡Enviado a Tasa Diaria!';
+        forceSheetsBtn.innerHTML =
+          '<span class="sheets-btn-icon">✅</span> ¡Enviado a Tasa Diaria!';
         try {
           localStorage.setItem(
             "bcv_sheets_last_sync",
-            JSON.stringify({ date: targetDate, usd: targetUsd, eur: targetEur })
+            JSON.stringify({
+              date: targetDate,
+              usd: targetUsd,
+              eur: targetEur,
+            }),
           );
         } catch (e) {}
       } else {
-        if (result.message && (result.message.includes("Permiso") || result.message.includes("403"))) {
-          forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">⚠️</span> Error 403 (Permiso Apps Script)';
+        if (
+          result.message &&
+          (result.message.includes("Permiso") || result.message.includes("403"))
+        ) {
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">⚠️</span> Error 403 (Permiso Apps Script)';
         } else {
-          forceSheetsBtn.innerHTML = '<span class="sheets-btn-icon">⚠️</span> Error al enviar';
+          forceSheetsBtn.innerHTML =
+            '<span class="sheets-btn-icon">⚠️</span> Error al enviar';
         }
       }
 
